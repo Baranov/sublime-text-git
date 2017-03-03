@@ -44,6 +44,62 @@ class GitQuickCommitCommand(GitTextCommand):
             return
         self.run_command(['git', 'commit', '-m', message])
 
+class GitQuickCommitPullPushCommand(GitTextCommand):
+    def run(self, edit, target=None):
+        if target is None:
+            # 'target' might also be False, in which case we just don't provide an add argument
+            target = self.get_file_name()
+        self.get_window().show_input_panel(
+            "Message", "",
+            functools.partial(self.on_input, target), None, None
+        )
+
+    def on_input(self, target, message):
+        if message.strip() == "":
+            self.panel("No commit message provided")
+            return
+
+        if target:
+            command = ['git', 'add']
+            if target == '*':
+                command.append('--all')
+            else:
+                command.extend(('--', target))
+            self.run_command(command, functools.partial(self.add_done, message))
+        else:
+            self.add_done(message, "")
+
+    def add_done(self, message, result):
+        if result.strip():
+            sublime.error_message("Error adding file:\n" + result)
+            return
+        self.run_command(['git', 'commit', '-m', message])
+        self.run_command(['git', 'pull'])
+        self.run_command(['git', 'push'])
+
+
+# class GitQuickCommitPullPushCommand(GitTextCommand):
+#     def run(self, edit):
+#         self.get_window().show_input_panel(
+#             "Message", "",
+#             functools.partial(self.on_input, False), None, None
+#         )
+
+#     def on_input(self, False, message):
+#         if message.strip() == "":
+#             self.panel("No commit message provided")
+#             return
+
+#             self.add_done(message, "")
+
+#     def add_done(self, message, result):
+#         if result.strip():
+#             sublime.error_message("Error adding file:\n" + result)
+#             return
+#         self.run_command(['git', 'commit', '-m', message])
+#         self.run_command(['git', 'pull'])
+#         self.run_command(['git', 'push'])
+
 
 # Commit is complicated. It'd be easy if I just wanted to let it run
 # on OSX, and assume that subl was in the $PATH. However... I can't do
